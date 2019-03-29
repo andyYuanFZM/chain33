@@ -116,7 +116,10 @@ func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
 	}
 	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none")}
 	tx.To = address.ExecAddress(execer)
-	tx, _ = types.FormatTx(execer, tx)
+	tx, err := types.FormatTx(execer, tx)
+	if err != nil {
+		return nil
+	}
 	if priv != nil {
 		tx.Sign(types.SECP256K1, priv)
 	}
@@ -148,7 +151,10 @@ func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transacti
 	if err != nil {
 		panic(err)
 	}
-	tx, _ = types.FormatTx("manage", tx)
+	tx, err = types.FormatTx("manage", tx)
+	if err != nil {
+		return nil
+	}
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
@@ -173,7 +179,10 @@ func createCoinsTx(to string, amount int64) *types.Transaction {
 		panic(err)
 	}
 	tx.To = to
-	tx, _ = types.FormatTx("coins", tx)
+	tx, err = types.FormatTx("coins", tx)
+	if err != nil {
+		return nil
+	}
 	return tx
 }
 
@@ -225,8 +234,9 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//通过consensus module 再次检查
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := types.Now()
+	beg2 := beg
 	defer func() {
-		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg2))
 	}()
 
 	if errReturn && block.Height > 0 && !block.CheckSign() {
@@ -330,7 +340,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		}
 	}
 	ulog.Info("ExecBlock", "CheckBlock", types.Since(beg))
-	beg = types.Now()
 	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
 	err = ExecKVSetCommit(client, block.StateHash)
 	if err != nil {
@@ -428,7 +437,10 @@ func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.
 func ResetDatadir(cfg *types.Config, datadir string) string {
 	// Check in case of paths like "/something/~/something/"
 	if datadir[:2] == "~/" {
-		usr, _ := user.Current()
+		usr, err := user.Current()
+		if err != nil {
+			panic(err)
+		}
 		dir := usr.HomeDir
 		datadir = filepath.Join(dir, datadir[2:])
 	}
@@ -463,7 +475,10 @@ func CreateTestDB() (string, db.DB, db.KVDB) {
 
 //CloseTestDB 创建一个测试数据库
 func CloseTestDB(dir string, dbm db.DB) {
-	os.RemoveAll(dir)
+	err := os.RemoveAll(dir)
+	if err != nil {
+		ulog.Info("RemoveAll ", "dir", dir, "err", err)
+	}
 	dbm.Close()
 }
 
