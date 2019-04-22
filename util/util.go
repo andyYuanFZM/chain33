@@ -13,9 +13,10 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"strings"
 	"testing"
 	"unicode"
+
+	"strings"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -312,7 +313,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	beg = types.Now()
 	block.TxHash = calcHash
 	var detail types.BlockDetail
-	calcHash, err = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
+	calcHash, err = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -341,13 +342,55 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 	ulog.Info("ExecBlock", "CheckBlock", types.Since(beg))
 	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
-	err = ExecKVSetCommit(client, block.StateHash)
+	err = ExecKVSetCommit(client, block.StateHash, false)
 	if err != nil {
 		return nil, nil, err
 	}
 	detail.KV = kvset
 	detail.PrevStatusHash = prevStateRoot
 	return &detail, deltx, nil
+}
+
+// ExecBlockUpgrade : just exec block
+func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Block, sync bool) error {
+	//发送执行交易给execs模块
+	//通过consensus module 再次检查
+	ulog.Debug("ExecBlockUpgrade", "height------->", block.Height, "ntx", len(block.Txs))
+	beg := types.Now()
+	beg1 := beg
+	defer func() {
+		ulog.Info("ExecBlockUpgrade", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg1))
+	}()
+
+	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
+	cacheTxs := types.TxsToCache(block.Txs)
+	var err error
+	block.Txs = types.CacheToTxs(cacheTxs)
+	//println("1")
+	receipts, err := ExecTx(client, prevStateRoot, block)
+	if err != nil {
+		return err
+	}
+	ulog.Info("ExecBlockUpgrade", "ExecTx", types.Since(beg))
+	beg = types.Now()
+	var kvset []*types.KeyValue
+	for i := 0; i < len(receipts.Receipts); i++ {
+		receipt := receipts.Receipts[i]
+		kvset = append(kvset, receipt.KV...)
+	}
+	kvset = DelDupKey(kvset)
+	calcHash, err := ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync, true)
+	if err != nil {
+		return err
+	}
+	//println("2")
+	if !bytes.Equal(block.StateHash, calcHash) {
+		return types.ErrCheckStateHash
+	}
+	ulog.Info("ExecBlockUpgrade", "CheckBlock", types.Since(beg))
+	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
+	err = ExecKVSetCommit(client, calcHash, true)
+	return err
 }
 
 //CreateNewBlock : Create a New Block
@@ -436,7 +479,7 @@ func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.
 //ResetDatadir 重写datadir
 func ResetDatadir(cfg *types.Config, datadir string) string {
 	// Check in case of paths like "/something/~/something/"
-	if datadir[:2] == "~/" {
+	if len(datadir) >= 2 && datadir[:2] == "~/" {
 		usr, err := user.Current()
 		if err != nil {
 			panic(err)
@@ -444,7 +487,7 @@ func ResetDatadir(cfg *types.Config, datadir string) string {
 		dir := usr.HomeDir
 		datadir = filepath.Join(dir, datadir[2:])
 	}
-	if datadir[:6] == "$TEMP/" {
+	if len(datadir) >= 6 && datadir[:6] == "$TEMP/" {
 		dir, err := ioutil.TempDir("", "chain33datadir-")
 		if err != nil {
 			panic(err)
