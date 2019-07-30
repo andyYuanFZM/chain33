@@ -163,7 +163,8 @@ func TestVersion(t *testing.T) {
 //}
 
 func testGetMemPoolOK(t *testing.T) {
-	qapi.On("GetMempool").Return(nil, nil)
+	var in *types.ReqGetMempool
+	qapi.On("GetMempool", in).Return(nil, nil)
 	data, err := g.GetMemPool(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
 	assert.Nil(t, data)
@@ -203,11 +204,11 @@ func TestGetLastMemPool(t *testing.T) {
 }
 
 func testGetProperFeeOK(t *testing.T) {
-	qapi.On("GetProperFee").Return(nil, nil)
-	data, err := g.GetProperFee(getOkCtx(), nil)
+	var in *types.ReqProperFee
+	qapi.On("GetProperFee", in).Return(&types.ReplyProperFee{ProperFee: 1000000}, nil)
+	data, err := g.GetProperFee(getOkCtx(), in)
 	assert.Nil(t, err, "the error should be nil")
-	assert.Nil(t, data)
-
+	assert.Equal(t, int64(1000000), data.ProperFee)
 }
 
 func TestGetProperFee(t *testing.T) {
@@ -1055,6 +1056,7 @@ func TestReWriteRawTx(t *testing.T) {
 		Fee:    29977777777,
 		Expire: "130s",
 		To:     "aabbccdd",
+		Index:  0,
 	}
 
 	data, err := g.ReWriteRawTx(getOkCtx(), in)
@@ -1067,7 +1069,6 @@ func TestReWriteRawTx(t *testing.T) {
 	err = types.Decode(data.Data, tx)
 	assert.Nil(t, err)
 	assert.Equal(t, tx.Fee, in.Fee)
-	assert.Equal(t, int64(130000000000), tx.Expire)
 	assert.Equal(t, in.To, tx.To)
 }
 

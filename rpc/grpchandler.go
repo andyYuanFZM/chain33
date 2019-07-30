@@ -130,8 +130,8 @@ func (g *Grpc) GetTransactionByHashes(ctx context.Context, in *pb.ReqHashes) (*p
 }
 
 // GetMemPool get mempool contents
-func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, error) {
-	return g.cli.GetMempool()
+func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqGetMempool) (*pb.ReplyTxList, error) {
+	return g.cli.GetMempool(in)
 }
 
 // GetAccounts get  accounts
@@ -206,8 +206,8 @@ func (g *Grpc) GetLastMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxLi
 }
 
 // GetProperFee return last mempool proper fee
-func (g *Grpc) GetProperFee(ctx context.Context, in *pb.ReqNil) (*pb.ReplyProperFee, error) {
-	return g.cli.GetProperFee()
+func (g *Grpc) GetProperFee(ctx context.Context, in *pb.ReqProperFee) (*pb.ReplyProperFee, error) {
+	return g.cli.GetProperFee(in)
 }
 
 // GetBlockOverview get block overview
@@ -385,4 +385,9 @@ func (g *Grpc) GetFork(ctx context.Context, in *pb.ReqKey) (*pb.Int64, error) {
 		return &pb.Int64{Data: pb.GetDappFork(keys[0], keys[1])}, nil
 	}
 	return &pb.Int64{Data: pb.GetFork(string(in.Key))}, nil
+}
+
+// GetParaTxByTitle 通过seq以及title获取对应平行连的交易
+func (g *Grpc) GetParaTxByTitle(ctx context.Context, in *pb.ReqParaTxByTitle) (*pb.ParaTxDetails, error) {
+	return g.cli.GetParaTxByTitle(in)
 }

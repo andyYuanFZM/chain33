@@ -39,6 +39,7 @@ type Store struct {
 	pruneHeight      int32
 	enableMemTree    bool
 	enableMemVal     bool
+	tkCloseCacheLen  int32
 }
 
 func init() {
@@ -57,6 +58,8 @@ type subConfig struct {
 	EnableMemTree bool `json:"enableMemTree"`
 	// 是否使能内存树中叶子节点
 	EnableMemVal bool `json:"enableMemVal"`
+	// 缓存close ticket数目
+	TkCloseCacheLen int32 `json:"tkCloseCacheLen"`
 }
 
 // New new mavl store module
@@ -67,19 +70,21 @@ func New(cfg *types.Store, sub []byte) queue.Module {
 		types.MustDecode(sub, &subcfg)
 	}
 	mavls := &Store{bs, &sync.Map{}, subcfg.EnableMavlPrefix, subcfg.EnableMVCC,
-		subcfg.EnableMavlPrune, subcfg.PruneHeight, subcfg.EnableMemTree, subcfg.EnableMemVal}
+		subcfg.EnableMavlPrune, subcfg.PruneHeight, subcfg.EnableMemTree, subcfg.EnableMemVal, subcfg.TkCloseCacheLen}
 	mavls.enableMavlPrefix = subcfg.EnableMavlPrefix
 	mavls.enableMVCC = subcfg.EnableMVCC
 	mavls.enableMavlPrune = subcfg.EnableMavlPrune
 	mavls.pruneHeight = subcfg.PruneHeight
 	mavls.enableMemTree = subcfg.EnableMemTree
 	mavls.enableMemVal = subcfg.EnableMemVal
+	mavls.tkCloseCacheLen = subcfg.TkCloseCacheLen
 	mavl.EnableMavlPrefix(mavls.enableMavlPrefix)
 	mavl.EnableMVCC(mavls.enableMVCC)
 	mavl.EnablePrune(mavls.enableMavlPrune)
 	mavl.SetPruneHeight(int(mavls.pruneHeight))
 	mavl.EnableMemTree(mavls.enableMemTree)
 	mavl.EnableMemVal(mavls.enableMemVal)
+	mavl.TkCloseCacheLen(mavls.tkCloseCacheLen)
 	bs.SetChild(mavls)
 	return mavls
 }
@@ -126,7 +131,7 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	beg := types.Now()
 	defer func() {
-		mlog.Info("MemSet", "cost", types.Since(beg))
+		mlog.Debug("MemSet", "cost", types.Since(beg))
 	}()
 	if len(datas.KV) == 0 {
 		mlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
@@ -151,7 +156,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 	beg := types.Now()
 	defer func() {
-		mlog.Info("Commit", "cost", types.Since(beg))
+		mlog.Debug("Commit", "cost", types.Since(beg))
 	}()
 	tree, ok := mavls.trees.Load(string(req.Hash))
 	if !ok {
@@ -176,7 +181,7 @@ func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 func (mavls *Store) MemSetUpgrade(datas *types.StoreSet, sync bool) ([]byte, error) {
 	beg := types.Now()
 	defer func() {
-		mlog.Info("MemSet", "cost", types.Since(beg))
+		mlog.Debug("MemSet", "cost", types.Since(beg))
 	}()
 	if len(datas.KV) == 0 {
 		mlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
@@ -205,7 +210,7 @@ func (mavls *Store) CommitUpgrade(req *types.ReqHash) ([]byte, error) {
 func (mavls *Store) Rollback(req *types.ReqHash) ([]byte, error) {
 	beg := types.Now()
 	defer func() {
-		mlog.Info("Rollback", "cost", types.Since(beg))
+		mlog.Debug("Rollback", "cost", types.Since(beg))
 	}()
 	_, ok := mavls.trees.Load(string(req.Hash))
 	if !ok {

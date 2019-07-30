@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 
 	"strconv"
 
@@ -53,8 +53,8 @@ func TxCacheSet(tx *Transaction, txc *TransactionCache) {
 	txCache.Add(tx, txc)
 }
 
-// CreateTxGroup 创建组交易
-func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
+// CreateTxGroup 创建组交易, feeRate传入交易费率, 建议通过系统GetProperFee获取
+func CreateTxGroup(txs []*Transaction, feeRate int64) (*Transactions, error) {
 	if len(txs) < 2 {
 		return nil, ErrTxGroupCountLessThanTwo
 	}
@@ -75,7 +75,7 @@ func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 		} else {
 			txs[i].Fee = 0
 		}
-		realfee, err := txs[i].GetRealFee(GInt("MinFee"))
+		realfee, err := txs[i].GetRealFee(feeRate)
 		if err != nil {
 			return nil, err
 		}
@@ -137,6 +137,30 @@ func (txgroup *Transactions) CheckSign() bool {
 	return true
 }
 
+//RebuiltGroup 交易内容有变化时需要重新构建交易组
+func (txgroup *Transactions) RebuiltGroup() {
+	header := txgroup.Txs[0].Hash()
+	for i := len(txgroup.Txs) - 1; i >= 0; i-- {
+		txgroup.Txs[i].Header = header
+		if i == 0 {
+			header = txgroup.Txs[0].Hash()
+		} else {
+			txgroup.Txs[i-1].Next = txgroup.Txs[i].Hash()
+		}
+	}
+	for i := 0; i < len(txgroup.Txs); i++ {
+		txgroup.Txs[i].Header = header
+	}
+}
+
+//SetExpire 设置交易组中交易的过期时间
+func (txgroup *Transactions) SetExpire(n int, expire time.Duration) {
+	if n >= len(txgroup.GetTxs()) {
+		return
+	}
+	txgroup.GetTxs()[n].SetExpire(expire)
+}
+
 //IsExpire 交易是否过期
 func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	txs := txgroup.Txs
@@ -148,8 +172,8 @@ func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	return false
 }
 
-//Check height == 0 的时候，不做检查
-func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
+//CheckWithFork 和fork 无关的有个检查函数
+func (txgroup *Transactions) CheckWithFork(checkFork, paraFork bool, height, minfee, maxFee int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
 		return ErrTxGroupCountLessThanTwo
@@ -168,7 +192,8 @@ func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 		}
 	}
 	//txgroup 只允许一条平行链的交易, 且平行链txgroup须全部是平行链tx
-	if IsFork(height, "ForkTxGroupPara") {
+	//如果平行链已经在主链分叉高度前运行了一段时间且有跨链交易，平行链需要自己设置这个fork
+	if paraFork {
 		if len(para) > 1 {
 			tlog.Info("txgroup has multi para transaction")
 			return ErrTxGroupParaCount
@@ -200,7 +225,7 @@ func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 	if txs[0].Fee < totalfee {
 		return ErrTxFeeTooLow
 	}
-	if txs[0].Fee > maxFee && maxFee > 0 && IsFork(height, "ForkBlockCheck") {
+	if txs[0].Fee > maxFee && maxFee > 0 && checkFork {
 		return ErrTxFeeTooHigh
 	}
 	//检查hash是否符合要求
@@ -234,6 +259,13 @@ func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
 		}
 	}
 	return nil
+}
+
+//Check height == 0 的时候，不做检查
+func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
+	paraFork := IsFork(height, "ForkTxGroupPara")
+	checkFork := IsFork(height, "ForkBlockCheck")
+	return txgroup.CheckWithFork(checkFork, paraFork, height, minfee, maxFee)
 }
 
 //TransactionCache 交易缓存结构
@@ -314,6 +346,28 @@ func (tx *TransactionCache) Check(height, minfee, maxFee int64) error {
 		}
 	}
 	return tx.checkok
+}
+
+//GetTotalFee 获取交易真实费用
+func (tx *TransactionCache) GetTotalFee(minFee int64) (int64, error) {
+	txgroup, err := tx.GetTxGroup()
+	if err != nil {
+		tx.checkok = err
+		return 0, err
+	}
+	var totalfee int64
+	if txgroup == nil {
+		return tx.GetRealFee(minFee)
+	}
+	txs := txgroup.Txs
+	for i := 0; i < len(txs); i++ {
+		fee, err := txs[i].GetRealFee(minFee)
+		if err != nil {
+			return 0, err
+		}
+		totalfee += fee
+	}
+	return totalfee, nil
 }
 
 //GetTxGroup 获取交易组
@@ -723,4 +777,12 @@ func ParseExpire(expire string) (int64, error) {
 	}
 
 	return 0, err
+}
+
+//CalcTxShortHash 取txhash的前指定字节，目前默认5
+func CalcTxShortHash(hash []byte) string {
+	if len(hash) >= 5 {
+		return hex.EncodeToString(hash[0:5])
+	}
+	return ""
 }

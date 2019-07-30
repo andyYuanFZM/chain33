@@ -5,6 +5,7 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -50,6 +51,7 @@ func (c *Chain33) ReWriteRawTx(in *rpctypes.ReWriteRawTx, result *interface{}) e
 		To:     in.To,
 		Fee:    in.Fee,
 		Expire: in.Expire,
+		Index:  in.Index,
 	}
 
 	reply, err := c.cli.ReWriteRawTx(inpb)
@@ -295,6 +297,11 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		log.Info("GetTxByHashes", "Failed to DecodeTx due to", err)
 		return nil, err
 	}
+	// swap from with to
+	if tx.GetTx().IsWithdraw() {
+		tx.Fromaddr, tx.Tx.To = tx.Tx.To, tx.Fromaddr
+		tran.To = tx.Tx.GetRealToAddr()
+	}
 	return &rpctypes.TransactionDetail{
 		Tx:         tran,
 		Height:     tx.GetHeight(),
@@ -323,9 +330,8 @@ func fmtAsssets(assets []*types.Asset) []*rpctypes.Asset {
 }
 
 // GetMempool get mempool information
-func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
-
-	reply, err := c.cli.GetMempool()
+func (c *Chain33) GetMempool(in *types.ReqGetMempool, result *interface{}) error {
+	reply, err := c.cli.GetMempool(in)
 	if err != nil {
 		return err
 	}
@@ -608,8 +614,8 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 }
 
 // GetProperFee get  contents in proper fee
-func (c *Chain33) GetProperFee(in types.ReqNil, result *interface{}) error {
-	reply, err := c.cli.GetProperFee()
+func (c *Chain33) GetProperFee(in types.ReqProperFee, result *interface{}) error {
+	reply, err := c.cli.GetProperFee(&in)
 	if err != nil {
 		return err
 	}
@@ -727,7 +733,13 @@ func (c *Chain33) GetWalletStatus(in types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = reply
+	status := rpctypes.WalletStatus{
+		IsWalletLock: reply.IsWalletLock,
+		IsAutoMining: reply.IsAutoMining,
+		IsHasSeed:    reply.IsHasSeed,
+		IsTicketLock: reply.IsTicketLock,
+	}
+	*result = &status
 	return nil
 }
 
@@ -882,8 +894,13 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 
 // QueryTotalFee query total fee
 func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error {
-	if in == nil || len(in.Keys) > 1 {
+	if in == nil || len(in.Keys) != 1 {
 		return types.ErrInvalidParam
+	}
+	totalFeePrefix := []byte("TotalFeeKey:")
+	//add prefix if not exist
+	if !bytes.HasPrefix(in.Keys[0], totalFeePrefix) {
+		in.Keys[0] = append(totalFeePrefix, in.Keys[0]...)
 	}
 	reply, err := c.cli.LocalGet(in)
 	if err != nil {
@@ -936,17 +953,33 @@ func (c *Chain33) GetFatalFailure(in *types.ReqNil, result *interface{}) error {
 
 }
 
-// DecodeRawTransaction decode rawtransaction
+// DecodeRawTransaction 考虑交易组的解析统一返回ReplyTxList列表
 func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
-	reply, err := c.cli.DecodeRawTransaction(in)
+	tx, err := c.cli.DecodeRawTransaction(in)
 	if err != nil {
 		return err
 	}
-	res, err := rpctypes.DecodeTx(reply)
+	txs, err := tx.GetTxGroup()
 	if err != nil {
 		return err
 	}
-	*result = res
+	var rpctxs rpctypes.ReplyTxList
+	if txs == nil {
+		res, err := rpctypes.DecodeTx(tx)
+		if err != nil {
+			return err
+		}
+		rpctxs.Txs = append(rpctxs.Txs, res)
+	} else {
+		for _, rpctx := range txs.GetTxs() {
+			res, err := rpctypes.DecodeTx(rpctx)
+			if err != nil {
+				return err
+			}
+			rpctxs.Txs = append(rpctxs.Txs, res)
+		}
+	}
+	*result = &rpctxs
 	return nil
 }
 
@@ -962,17 +995,6 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 		Diff:      reply.Diff,
 	}
 	*result = timeStatus
-	return nil
-}
-
-// WalletCreateTx wallet create tx
-func (c *Chain33) WalletCreateTx(in types.ReqCreateTransaction, result *interface{}) error {
-	reply, err := c.cli.WalletCreateTx(&in)
-	if err != nil {
-		return err
-	}
-	txHex := types.Encode(reply)
-	*result = hex.EncodeToString(txHex)
 	return nil
 }
 

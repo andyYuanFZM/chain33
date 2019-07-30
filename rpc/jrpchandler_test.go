@@ -5,6 +5,7 @@
 package rpc
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -416,6 +417,7 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 		Fee:    29977777777,
 		Expire: "130s",
 		To:     "aabbccdd",
+		Index:  0,
 	}
 	var testResult interface{}
 	err := testChain33.ReWriteRawTx(reTx, &testResult)
@@ -428,7 +430,6 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 	err = types.Decode(txData, tx)
 	assert.Nil(t, err)
 	assert.Equal(t, tx.Fee, reTx.Fee)
-	assert.Equal(t, int64(130000000000), tx.Expire)
 	assert.Equal(t, reTx.To, tx.To)
 
 }
@@ -437,6 +438,7 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
+	api.On("GetProperFee", mock.Anything).Return(nil, nil)
 	err := testChain33.CreateRawTxGroup(nil, &testResult)
 	assert.Nil(t, testResult)
 	assert.NotNil(t, err)
@@ -627,9 +629,9 @@ func TestChain33_GetMempool(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	api.On("GetMempool").Return(&types.ReplyTxList{Txs: []*types.Transaction{{}}}, nil)
+	api.On("GetMempool", &types.ReqGetMempool{}).Return(&types.ReplyTxList{Txs: []*types.Transaction{{}}}, nil)
 	var testResult interface{}
-	data := &types.ReqNil{}
+	data := &types.ReqGetMempool{IsAll: false}
 	err := testChain33.GetMempool(data, &testResult)
 	t.Log(err)
 	assert.NotNil(t, testResult)
@@ -929,12 +931,11 @@ func TestChain33_GetProperFee(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	// expected := &types.ReqBlocks{}
-	api.On("GetProperFee").Return(nil, errors.New("error value"))
+	expected := types.ReqProperFee{}
+	api.On("GetProperFee", &expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
-	actual := types.ReqNil{}
-	err := testChain33.GetProperFee(actual, &testResult)
+	err := testChain33.GetProperFee(expected, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -1073,8 +1074,7 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	// expected := &types.GetSeedByPw{}
-	api.On("GetWalletStatus").Return(nil, errors.New("error value"))
+	api.On("GetWalletStatus").Return(nil, errors.New("error value")).Once()
 
 	var testResult interface{}
 	actual := types.ReqNil{}
@@ -1082,6 +1082,25 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
+
+	expect := types.WalletStatus{
+		IsWalletLock: true,
+		IsAutoMining: true,
+		IsHasSeed:    false,
+		IsTicketLock: false,
+	}
+	api.On("GetWalletStatus").Return(&expect, nil).Once()
+	err = testChain33.GetWalletStatus(actual, &testResult)
+	t.Log(err)
+	assert.Nil(t, err)
+	status, ok := testResult.(*rpctypes.WalletStatus)
+	if !ok {
+		t.Error("GetWalletStatus type error")
+	}
+	assert.Equal(t, expect.IsWalletLock, status.IsWalletLock)
+	assert.Equal(t, expect.IsAutoMining, status.IsAutoMining)
+	assert.Equal(t, expect.IsHasSeed, status.IsHasSeed)
+	assert.Equal(t, expect.IsTicketLock, status.IsTicketLock)
 
 	mock.AssertExpectationsForObjects(t, api)
 }
@@ -1282,6 +1301,7 @@ func TestChain33_GetBalance(t *testing.T) {
 func TestChain33_CreateNoBalanceTransaction(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	chain33 := newTestChain33(api)
+	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: 1000000}, nil)
 	var result string
 	err := chain33.CreateNoBalanceTransaction(&types.NoBalanceTx{TxHex: "0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"}, &result)
 	assert.NoError(t, err)
@@ -1343,15 +1363,6 @@ func TestChain33_DecodeRawTransaction(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestChain33_WalletCreateTx(t *testing.T) {
-	api := new(mocks.QueueProtocolAPI)
-	client := newTestChain33(api)
-	var testResult interface{}
-	api.On("WalletCreateTx", mock.Anything).Return(&types.Transaction{}, nil)
-	err := client.WalletCreateTx(types.ReqCreateTransaction{}, &testResult)
-	assert.NoError(t, err)
-}
-
 func TestChain33_CloseQueue(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
@@ -1395,4 +1406,44 @@ func TestChain33_ConvertExectoAddr(t *testing.T) {
 	var testResult string
 	err := client.ConvertExectoAddr(rpctypes.ExecNameParm{ExecName: "coins"}, &testResult)
 	assert.NoError(t, err)
+}
+
+func Test_fmtTxDetail(t *testing.T) {
+
+	tx := &types.Transaction{Execer: []byte("coins")}
+	log := &types.ReceiptLog{Ty: 0, Log: []byte("test")}
+	receipt := &types.ReceiptData{Ty: 0, Logs: []*types.ReceiptLog{log}}
+	detail := &types.TransactionDetail{Tx: tx, Receipt: receipt}
+	var err error
+	//test withdraw swap from to
+	detail.Fromaddr = "from"
+	detail.Tx.Payload, err = common.FromHex("0x180322301080c2d72f2205636f696e732a22314761485970576d71414a7371527772706f4e6342385676674b7453776a63487174")
+	assert.NoError(t, err)
+	tx.To = "to"
+	tran, err := fmtTxDetail(detail, false)
+	assert.NoError(t, err)
+	assert.Equal(t, "to", tran.Fromaddr)
+	assert.Equal(t, "from", tx.To)
+}
+
+func queryTotalFee(client *Chain33, req *types.LocalDBGet, t *testing.T) int64 {
+	var testResult interface{}
+	err := client.QueryTotalFee(req, &testResult)
+	assert.NoError(t, err)
+	fee, _ := testResult.(types.TotalFee)
+	return fee.Fee
+}
+
+func TestChain33_QueryTotalFee(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+
+	total := &types.TotalFee{TxCount: 1, Fee: 10000}
+	api.On("LocalGet", mock.Anything).Return(&types.LocalReplyValue{Values: [][]byte{types.Encode(total)}}, nil)
+	req := &types.LocalDBGet{Keys: [][]byte{types.TotalFeeKey([]byte("testHash"))}}
+	req1 := &types.LocalDBGet{Keys: [][]byte{[]byte("testHash")}}
+
+	assert.Equal(t, total.Fee, queryTotalFee(client, req, t))
+	assert.Equal(t, total.Fee, queryTotalFee(client, req1, t))
+	assert.True(t, bytes.Equal(req.Keys[0], req1.Keys[0]))
 }

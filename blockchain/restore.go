@@ -9,13 +9,16 @@ import (
 
 	"fmt"
 
+	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/types"
 )
 
 // Upgrade 升级localDB和storeDB
 func (chain *BlockChain) Upgrade() {
+	chainlog.Info("chain upgrade start")
 	chain.UpgradeChain()
+	chainlog.Info("storedb upgrade start")
 	chain.UpgradeStore()
 }
 
@@ -61,6 +64,7 @@ func (chain *BlockChain) ReExecBlock(startHeight, curHeight int64) {
 		}
 		prevStateHash = blockdetail.Block.StateHash
 	}
+
 	for i := startHeight; i <= curHeight; i++ {
 		blockdetail, err := chain.GetBlock(i)
 		if err != nil {
@@ -71,6 +75,17 @@ func (chain *BlockChain) ReExecBlock(startHeight, curHeight int64) {
 		if err != nil {
 			panic(fmt.Sprintf("execBlockEx height=%d err=%s, this not allow fail", i, err.Error()))
 		}
+
+		if chain.cfg.EnableReExecLocal {
+			// 保存tx信息到db中
+			newbatch := chain.blockStore.NewBatch(false)
+			err = chain.blockStore.AddTxs(newbatch, blockdetail)
+			if err != nil {
+				panic(fmt.Sprintf("execBlockEx connectBlock readd Txs fail height=%d err=%s, this not allow fail", i, err.Error()))
+			}
+			dbm.MustWrite(newbatch)
+		}
+
 		prevStateHash = block.StateHash
 		//更新高度
 		err = chain.upgradeMeta(i)

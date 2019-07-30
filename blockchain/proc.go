@@ -70,7 +70,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetBlockByHashes:
 			go chain.processMsg(msg, reqnum, chain.getBlockByHashes)
-
 		case types.EventGetBlockBySeq:
 			go chain.processMsg(msg, reqnum, chain.getBlockBySeq)
 
@@ -90,6 +89,21 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetSeqCBLastNum:
 			go chain.processMsg(msg, reqnum, chain.getSeqCBLastNum)
+
+		case types.EventGetLastBlockMainSequence:
+			go chain.processMsg(msg, reqnum, chain.GetLastBlockMainSequence)
+		case types.EventGetMainSeqByHash:
+			go chain.processMsg(msg, reqnum, chain.GetMainSeqByHash)
+
+		//para共识模块操作blockchain db的事件
+		case types.EventSetValueByKey:
+			go chain.processMsg(msg, reqnum, chain.setValueByKey)
+		case types.EventGetValueByKey:
+			go chain.processMsg(msg, reqnum, chain.getValueByKey)
+
+		//通过平行链title获取平行链的交易
+		case types.EventGetParaTxByTitle:
+			go chain.processMsg(msg, reqnum, chain.getParaTxByTitle)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -518,4 +532,72 @@ func (chain *BlockChain) localAddrTxCount(msg *queue.Message) {
 	}
 	counts = count.Data
 	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+}
+
+//GetLastBlockMainSequence 获取最新的block执行序列号
+func (chain *BlockChain) GetLastBlockMainSequence(msg *queue.Message) {
+	var lastSequence types.Int64
+	var err error
+	lastSequence.Data, err = chain.blockStore.LoadBlockLastMainSequence()
+	if err != nil {
+		chainlog.Debug("GetLastBlockMainSequence", "err", err)
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyLastBlockMainSequence, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventReplyLastBlockMainSequence, &lastSequence))
+}
+
+//GetMainSeqByHash parachian 通过blockhash获取对应的seq，只记录了addblock时的seq
+func (chain *BlockChain) GetMainSeqByHash(msg *queue.Message) {
+	blockhash := (msg.Data).(*types.ReqHash)
+	seq, err := chain.ProcGetMainSeqByHash(blockhash.Hash)
+	if err != nil {
+		chainlog.Error("GetMainSeqByHash", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyMainSeqByHash, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("rpc", types.EventReplyMainSeqByHash, &types.Int64{Data: seq}))
+}
+
+//setValueByKey 设置kv对到blockchain db中
+func (chain *BlockChain) setValueByKey(msg *queue.Message) {
+	var reply types.Reply
+	reply.IsOk = true
+	if !chain.isParaChain {
+		reply.IsOk = false
+		reply.Msg = []byte("Must Para Chain Support!")
+		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
+		return
+	}
+	kvs := (msg.Data).(*types.LocalDBSet)
+	err := chain.SetValueByKey(kvs)
+	if err != nil {
+		chainlog.Error("setValueByKey", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
+}
+
+//GetValueByKey 获取value通过key从blockchain db中
+func (chain *BlockChain) getValueByKey(msg *queue.Message) {
+	if !chain.isParaChain {
+		msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, nil))
+		return
+	}
+	keys := (msg.Data).(*types.LocalDBGet)
+	values := chain.GetValueByKey(keys)
+	msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, values))
+}
+
+//getParaTxByTitle //通过平行链title获取平行链的交易
+func (chain *BlockChain) getParaTxByTitle(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqParaTxByTitle)
+	reply, err := chain.GetParaTxByTitle(req)
+	if err != nil {
+		chainlog.Error("getParaTxByTitle", "req", req, "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, err))
+		return
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, reply))
 }
