@@ -29,7 +29,7 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/limits"
 	clog "github.com/33cn/chain33/common/log"
-	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/consensus"
 	"github.com/33cn/chain33/executor"
@@ -51,6 +51,7 @@ var (
 	fixtime    = flag.Bool("fixtime", false, "fix time")
 	waitPid    = flag.Bool("waitpid", false, "p2p stuck until seed save info wallet & wallet unlock")
 	rollback   = flag.Int64("rollback", 0, "rollback block")
+	log = log15.New("module", "util_cli")
 )
 
 //RunChain33 : run Chain33

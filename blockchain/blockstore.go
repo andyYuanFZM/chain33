@@ -20,6 +20,7 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
+	"github.com/33cn/chain33/common/log/log15"
 )
 
 //var
@@ -39,7 +40,7 @@ var (
 	paraSeqToHashKey            = []byte("ParaSeq:")
 	HashToParaSeqPrefix         = []byte("HashToParaSeq:")
 	LastParaSequence            = []byte("LastParaSequence")
-	storeLog                    = chainlog.New("submodule", "store")
+	storeLog                    = log15.New("submodule", "store")
 	AddBlock              int64 = 1
 	DelBlock              int64 = 2
 )

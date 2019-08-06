@@ -38,7 +38,7 @@ func SetLogLevel(level string) {
 
 // DisableLog disable log
 func DisableLog() {
-	slog.SetHandler(log.DiscardHandler())
+	//slog.SetHandler(log.DiscardHandler())
 }
 
 // SubStore  store db的操作接口

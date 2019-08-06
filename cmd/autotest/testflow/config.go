@@ -67,7 +67,7 @@ type TestRunner interface {
 //InitFlowConfig 初始化配置
 func InitFlowConfig(conf string, log string) {
 
-	fileLog.SetHandler(log15.Must.FileHandler(log, types.AutoTestLogFormat()))
+	//fileLog.SetHandler(log15.Must.FileHandler(log, types.AutoTestLogFormat()))
 	configFile = conf
 
 }

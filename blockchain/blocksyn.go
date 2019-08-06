@@ -13,6 +13,7 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/common/log/log15"
 )
 
 //var
@@ -26,7 +27,7 @@ var (
 	//TODO
 	batchsyncblocknum int64 = 5000 //同步阶段，如果自己高度小于最大高度5000个时，saveblock到db时批量处理不刷盘
 
-	synlog = chainlog.New("submodule", "syn")
+	synlog = log15.New("submodule", "syn")
 )
 
 //PeerInfo blockchain模块需要保存的peerinfo

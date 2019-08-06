@@ -8,10 +8,11 @@ import (
 	"strings"
 
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/common/log/log15"
 )
 
 var (
-	filterlog = chainlog.New("submodule", "filter")
+	filterlog = log15.New("submodule", "filter")
 )
 
 //GetParaTxByTitle 通过seq以及title获取对应平行连的交易

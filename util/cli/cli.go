@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -95,7 +94,7 @@ func Run(RPCAddr, ParaName string) {
 	//test tls is enable
 	RPCAddr = testTLS(RPCAddr)
 	pluginmgr.AddCmd(rootCmd)
-	log.SetLogLevel("error")
+	//log.SetLogLevel("error")
 	types.S("RPCAddr", RPCAddr)
 	types.S("ParaName", ParaName)
 	rootCmd.PersistentFlags().String("rpc_laddr", types.GStr("RPCAddr"), "http url")

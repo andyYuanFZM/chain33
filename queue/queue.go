@@ -42,7 +42,7 @@ var (
 
 // DisableLog disable log
 func DisableLog() {
-	qlog.SetHandler(log.DiscardHandler())
+	//qlog.SetHandler(log.DiscardHandler())
 }
 
 type chanSub struct {

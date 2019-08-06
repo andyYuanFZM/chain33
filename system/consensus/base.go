@@ -64,7 +64,7 @@ func NewBaseClient(cfg *types.Consensus) *BaseClient {
 	}
 	client := &BaseClient{minerStart: flag, isCaughtUp: 0}
 	client.Cfg = cfg
-	log.Info("Enter consensus " + cfg.Name)
+	tlog.Info("Enter consensus " + cfg.Name)
 	return client
 }
 
@@ -90,7 +90,7 @@ func (bc *BaseClient) SetAPI(api client.QueueProtocolAPI) {
 
 //InitClient 初始化
 func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
-	log.Info("Enter SetQueueClient method of consensus")
+	tlog.Info("Enter SetQueueClient method of consensus")
 	bc.client = c
 	bc.minerstartCB = minerstartCB
 	var err error
@@ -162,7 +162,7 @@ func (bc *BaseClient) Close() {
 	atomic.StoreInt32(&bc.minerStart, 0)
 	atomic.StoreInt32(&bc.isclosed, 1)
 	bc.client.Close()
-	log.Info("consensus base closed")
+	tlog.Info("consensus base closed")
 }
 
 //IsClosed 是否已经关闭
@@ -439,7 +439,7 @@ func (bc *BaseClient) UpdateCurrentBlock(b *types.Block) {
 	defer bc.mulock.Unlock()
 	block, err := bc.RequestLastBlock()
 	if err != nil {
-		log.Error("UpdateCurrentBlock", "RequestLastBlock", err)
+		tlog.Error("UpdateCurrentBlock", "RequestLastBlock", err)
 		return
 	}
 	bc.currentBlock = block
@@ -473,9 +473,9 @@ func (bc *BaseClient) Unlock() {
 //ConsensusTicketMiner ...
 func (bc *BaseClient) ConsensusTicketMiner(iscaughtup *types.IsCaughtUp) {
 	if !atomic.CompareAndSwapInt32(&bc.isCaughtUp, 0, 1) {
-		log.Info("ConsensusTicketMiner", "isCaughtUp", bc.isCaughtUp)
+		tlog.Info("ConsensusTicketMiner", "isCaughtUp", bc.isCaughtUp)
 	} else {
-		log.Info("ConsensusTicketMiner", "isCaughtUp", bc.isCaughtUp)
+		tlog.Info("ConsensusTicketMiner", "isCaughtUp", bc.isCaughtUp)
 	}
 }
 
@@ -569,7 +569,7 @@ func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, bloc
 func isExpire(txs []*types.Transaction, height int64, blocktime int64) bool {
 	for _, tx := range txs {
 		if height > 0 && blocktime > 0 && tx.IsExpire(height, blocktime) {
-			log.Debug("isExpire", "height", height, "blocktime", blocktime, "hash", common.ToHex(tx.Hash()), "Expire", tx.Expire)
+			tlog.Debug("isExpire", "height", height, "blocktime", blocktime, "hash", common.ToHex(tx.Hash()), "Expire", tx.Expire)
 			return true
 		}
 	}

@@ -12,32 +12,31 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/33cn/chain33/common/log/log15"
 )
 
 //FloatDiff const
 const FloatDiff = 0.00001
 
 //AutoTestLogFormat customize log15 log format
-func AutoTestLogFormat() log15.Format {
-
-	logfmt := log15.LogfmtFormat()
-
-	return log15.FormatFunc(func(r *log15.Record) []byte {
-
-		if r.Msg == "PrettyJsonLogFormat" && len(r.Ctx) == 4 {
-
-			b, ok := r.Ctx[3].([]byte)
-			if ok {
-				//return raw json data directly
-				return b
-			}
-		}
-
-		return logfmt.Format(r)
-	})
-
-}
+//func AutoTestLogFormat() log15.Format {
+//
+//	logfmt := log15.LogfmtFormat()
+//
+//	return log15.FormatFunc(func(r *log15.Record) []byte {
+//
+//		if r.Msg == "PrettyJsonLogFormat" && len(r.Ctx) == 4 {
+//
+//			b, ok := r.Ctx[3].([]byte)
+//			if ok {
+//				//return raw json data directly
+//				return b
+//			}
+//		}
+//
+//		return logfmt.Format(r)
+//	})
+//
+//}
 
 //RunChain33Cli invoke chain33 client
 func RunChain33Cli(para []string) (string, error) {

@@ -316,7 +316,7 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 		if len(in.StateHash) == 0 {
 			accounts, err = acc.LoadAccounts(api, exaddrs)
 			if err != nil {
-				log.Error("GetBalance", "err", err.Error())
+				alog.Error("GetBalance", "err", err.Error())
 				return nil, err
 			}
 		} else {
@@ -326,7 +326,7 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 			}
 			accounts, err = acc.loadAccountsHistory(api, exaddrs, hash)
 			if err != nil {
-				log.Error("GetBalance", "err", err.Error())
+				alog.Error("GetBalance", "err", err.Error())
 				return nil, err
 			}
 		}
@@ -343,7 +343,7 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 		if len(in.StateHash) == 0 {
 			account, err = acc.LoadExecAccountQueue(api, addr, execaddress)
 			if err != nil {
-				log.Error("GetBalance", "err", err.Error())
+				alog.Error("GetBalance", "err", err.Error())
 				continue
 			}
 		} else {
@@ -353,7 +353,7 @@ func (acc *DB) GetBalance(api client.QueueProtocolAPI, in *types.ReqBalance) ([]
 			}
 			account, err = acc.LoadExecAccountHistoryQueue(api, addr, execaddress, hash)
 			if err != nil {
-				log.Error("GetBalance", "err", err.Error())
+				alog.Error("GetBalance", "err", err.Error())
 				continue
 			}
 		}
@@ -395,22 +395,22 @@ func (acc *DB) GetExecBalance(api client.QueueProtocolAPI, in *types.ReqGetExecB
 
 	for i := 0; i < len(res.Keys); i++ {
 		strKey := string(res.Keys[i])
-		log.Info("DB.GetExecBalance process one record", "key", strKey)
+		alog.Info("DB.GetExecBalance process one record", "key", strKey)
 		if !strings.HasPrefix(strKey, prefix) {
-			log.Error("accountDB.GetExecBalance key does not match prefix", "key", strKey, "prefix", prefix)
+			alog.Error("accountDB.GetExecBalance key does not match prefix", "key", strKey, "prefix", prefix)
 			return nil, types.ErrTypeAsset
 		}
 		//如果prefix形如：mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:  ,则是查找addr在一个合约地址上的余额，找到一个值即可结束。
 		if strings.HasSuffix(prefix, ":") {
 			addr := strKey[len(prefix):]
 			execAddr := []byte(prefix[(len(prefix) - len(addr) - 1):(len(prefix) - 1)])
-			log.Info("DB.GetExecBalance record for specific exec addr", "execAddr", string(execAddr), "addr", addr)
+			alog.Info("DB.GetExecBalance record for specific exec addr", "execAddr", string(execAddr), "addr", addr)
 			reply.AddItem(execAddr, res.Values[i])
 		} else {
 			combinAddr := strKey[len(prefix):]
 			addrs := strings.Split(combinAddr, ":")
 			if 2 != len(addrs) {
-				log.Error("accountDB.GetExecBalance key does not contain exec-addr & addr", "key", strKey, "combinAddr", combinAddr)
+				alog.Error("accountDB.GetExecBalance key does not contain exec-addr & addr", "key", strKey, "combinAddr", combinAddr)
 				return nil, types.ErrTypeAsset
 			}
 			//log.Info("DB.GetExecBalance", "execAddr", addrs[0], "addr", addrs[1])

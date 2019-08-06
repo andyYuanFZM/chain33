@@ -26,7 +26,7 @@ func SetLogLevel(level string) {
 
 // DisableLog disable log
 func DisableLog() {
-	mlog.SetHandler(log.DiscardHandler())
+	//mlog.SetHandler(log.DiscardHandler())
 }
 
 // Store mavl store struct

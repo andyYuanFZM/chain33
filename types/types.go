@@ -385,17 +385,17 @@ func (r *ReceiptData) DecodeReceiptLog(execer []byte) (*ReceiptDataResult, error
 }
 
 //OutputReceiptDetails 输出回执数据详情
-func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
-	rds, err := r.DecodeReceiptLog(execer)
-	if err == nil {
-		logger.Debug("receipt decode", "receipt data", rds)
-		for _, rdl := range rds.Logs {
-			logger.Debug("receipt log", "log", rdl)
-		}
-	} else {
-		logger.Error("decodelogerr", "err", err)
-	}
-}
+//func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger zap.Logger) {
+//	rds, err := r.DecodeReceiptLog(execer)
+//	if err == nil {
+//		//logger.Debug("receipt decode", "receipt data", rds)
+//		for _, rdl := range rds.Logs {
+//			//logger.Debug("receipt log", "log", rdl)
+//		}
+//	} else {
+//		//logger.Error("decodelogerr", "err", err)
+//	}
+//}
 
 //IterateRangeByStateHash 迭代查找
 func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {

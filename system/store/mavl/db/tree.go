@@ -680,7 +680,7 @@ func (ndb *nodeDB) cacheNode(node *Node) {
 	if ndb.cache != nil && node.height > 2 {
 		ndb.cache.Add(string(node.hash), node)
 		if ndb.cache.Len()%10000 == 0 {
-			log.Info("store db cache ", "len", ndb.cache.Len())
+			treelog.Info("store db cache ", "len", ndb.cache.Len())
 		}
 	}
 }

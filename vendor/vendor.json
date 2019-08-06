@@ -1,0 +1,67 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"checksumSHA1": "4bpM7GIaeDzpO/W1DDLd2qzJZ+U=",
+			"path": "go.uber.org/atomic",
+			"revision": "ef0d20d85b01f4708a8085bca571838bf59a3f77",
+			"revisionTime": "2019-07-31T19:47:37Z"
+		},
+		{
+			"checksumSHA1": "k6fZfqRI1ugCrn/tKc8ZAW5dEz8=",
+			"path": "go.uber.org/multierr",
+			"revision": "bd075f90b08f5274a0bc63bcffacd6c64b60ac55",
+			"revisionTime": "2019-04-29T21:01:00Z"
+		},
+		{
+			"checksumSHA1": "fIc9l6BgR2RXsLcCbKcQN6g2iDo=",
+			"path": "go.uber.org/zap",
+			"revision": "9a9fa7d4b5f07a9b634983678a65b5525f81e58b",
+			"revisionTime": "2019-07-09T14:27:28Z"
+		},
+		{
+			"checksumSHA1": "WqtJkeMTOkkuj4NYqQSEYkArC74=",
+			"path": "go.uber.org/zap/buffer",
+			"revision": "9a9fa7d4b5f07a9b634983678a65b5525f81e58b",
+			"revisionTime": "2019-07-09T14:27:28Z"
+		},
+		{
+			"checksumSHA1": "Y0uE8U8wxuPku0bFZyVmYLznd/o=",
+			"path": "go.uber.org/zap/internal/bufferpool",
+			"revision": "9a9fa7d4b5f07a9b634983678a65b5525f81e58b",
+			"revisionTime": "2019-07-09T14:27:28Z"
+		},
+		{
+			"checksumSHA1": "JYwfoIKGRcJ8J1ALfnzj5BE0E/Q=",
+			"path": "go.uber.org/zap/internal/color",
+			"revision": "9a9fa7d4b5f07a9b634983678a65b5525f81e58b",
+			"revisionTime": "2019-07-09T14:27:28Z"
+		},
+		{
+			"checksumSHA1": "zDLXTw4NyoX4ajEJLBISi3mBHQY=",
+			"path": "go.uber.org/zap/internal/exit",
+			"revision": "9a9fa7d4b5f07a9b634983678a65b5525f81e58b",
+			"revisionTime": "2019-07-09T14:27:28Z"
+		},
+		{
+			"checksumSHA1": "u38F4E/gCSgWn4jIov3TFkKRSq8=",
+			"path": "go.uber.org/zap/internal/ztest",
+			"revision": "9a9fa7d4b5f07a9b634983678a65b5525f81e58b",
+			"revisionTime": "2019-07-09T14:27:28Z"
+		},
+		{
+			"checksumSHA1": "foeR0VyMtx81GaLoZENc88pk5W8=",
+			"path": "go.uber.org/zap/zapcore",
+			"revision": "9a9fa7d4b5f07a9b634983678a65b5525f81e58b",
+			"revisionTime": "2019-07-09T14:27:28Z"
+		},
+		{
+			"checksumSHA1": "zQ59FQVAhDL5pd33SscXiAJuPG8=",
+			"path": "go.uber.org/zap/zaptest/observer",
+			"revision": "9a9fa7d4b5f07a9b634983678a65b5525f81e58b",
+			"revisionTime": "2019-07-09T14:27:28Z"
+		}
+	],
+	"rootPath": "github.com/33cn/chain33"
+}

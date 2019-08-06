@@ -13,7 +13,7 @@ import (
 	"sort"
 	"time"
 
-	log "github.com/33cn/chain33/common/log/log15"
+	//log "github.com/33cn/chain33/common/log/log15"
 )
 
 const ntpEpochOffset = 2208988800
@@ -135,8 +135,8 @@ func GetNtpTime(host string) (time.Time, error) {
 	d2 := t3.Sub(t4)
 	delt := (d1 + d2) / 2
 	if delt > time.Duration(safeDeltaScope) || delt < time.Duration(-safeDeltaScope) {
-		log.Error("GetNtpTime", "host", host, "delt", delt, "RxSec", rsp.RxTimeSec, "RxNs", rsp.RxTimeFrac, "TxSec", rsp.TxTimeSec, "TxNs", rsp.TxTimeFrac)
-		log.Error("GetNtpTime", "delt", delt, "t1", t1, "t2", t2, "t3", t3, "now", t4, "d1", d1, "d2", d2)
+		//log.Error("GetNtpTime", "host", host, "delt", delt, "RxSec", rsp.RxTimeSec, "RxNs", rsp.RxTimeFrac, "TxSec", rsp.TxTimeSec, "TxNs", rsp.TxTimeFrac)
+		//log.Error("GetNtpTime", "delt", delt, "t1", t1, "t2", t2, "t3", t3, "now", t4, "d1", d1, "d2", d2)
 		return time.Time{}, errors.New("WrongNtpDelteTime")
 	}
 	return t4.Add(delt), nil

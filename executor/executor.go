@@ -34,7 +34,7 @@ func SetLogLevel(level string) {
 
 // DisableLog disable log
 func DisableLog() {
-	elog.SetHandler(log.DiscardHandler())
+	//elog.SetHandler(log.DiscardHandler())
 }
 
 // Executor executor struct

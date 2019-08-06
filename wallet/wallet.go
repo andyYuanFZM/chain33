@@ -83,8 +83,8 @@ func SetLogLevel(level string) {
 
 // DisableLog 禁用日志
 func DisableLog() {
-	walletlog.SetHandler(log.DiscardHandler())
-	storelog.SetHandler(log.DiscardHandler())
+	//walletlog.SetHandler(log.DiscardHandler())
+	//storelog.SetHandler(log.DiscardHandler())
 }
 
 // New 创建一个钱包对象

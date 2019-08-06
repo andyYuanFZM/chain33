@@ -8,9 +8,9 @@ import (
 	"errors"
 
 	"github.com/33cn/chain33/common"
-	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/common/log/log15"
 )
 
 //CheckBlock : To check the block's validaty
@@ -165,7 +165,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	hashList := client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
 	err = client.Send(hashList, true)
 	if err != nil {
-		log.Error("send", "to blockchain EventTxHashList msg err", err)
+		ulog.Error("send", "to blockchain EventTxHashList msg err", err)
 		return nil, err
 	}
 	dupTxList, err := client.Wait(hashList)
@@ -176,7 +176,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	dupMap := make(map[string]bool)
 	for _, hash := range dupTxs {
 		dupMap[string(hash)] = true
-		log.Debug("CheckTxDup", "TxDuphash", common.ToHex(hash))
+		ulog.Debug("CheckTxDup", "TxDuphash", common.ToHex(hash))
 	}
 	for _, tx := range txs {
 		hash := tx.Hash()
@@ -190,13 +190,13 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 
 //ReportErrEventToFront 上报指定错误信息到指定模块，目前只支持从store，blockchain，wallet写数据库失败时上报错误信息到wallet模块，
 //然后由钱包模块前端定时调用显示给客户
-func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule string, tomodule string, err error) {
+func ReportErrEventToFront(logger *log15.ZapLogger, client queue.Client, frommodule string, tomodule string, err error) {
 	if client == nil || len(tomodule) == 0 || len(frommodule) == 0 || err == nil {
 		logger.Error("SendErrEventToFront  input para err .")
 		return
 	}
 
-	logger.Debug("SendErrEventToFront", "frommodule", frommodule, "tomodule", tomodule, "err", err)
+	//logger.Debug("SendErrEventToFront", "frommodule", frommodule, "tomodule", tomodule, "err", err)
 
 	var reportErrEvent types.ReportErrEvent
 	reportErrEvent.Frommodule = frommodule
@@ -205,7 +205,7 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 	msg := client.NewMessage(tomodule, types.EventErrToFront, &reportErrEvent)
 	err = client.Send(msg, false)
 	if err != nil {
-		log.Error("send", "EventErrToFront msg err", err)
+		ulog.Error("send", "EventErrToFront msg err", err)
 	}
 }
 

@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	"github.com/33cn/chain33/client"
-	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
@@ -34,7 +33,7 @@ type HealthCheckServer struct {
 func (s *HealthCheckServer) Close() {
 	close(s.quit)
 	s.wg.Wait()
-	log.Info("healthCheck quit")
+	ulog.Info("healthCheck quit")
 }
 
 // NewHealthCheckServer new json rpcserver object
@@ -65,7 +64,7 @@ func (s *HealthCheckServer) Start(cfg *types.HealthCheck) {
 			unSyncMaxTimes = cfg.UnSyncMaxTimes
 		}
 	}
-	log.Info("healthCheck start ", "addr", listenAddr, "inter", checkInterval, "times", unSyncMaxTimes)
+	ulog.Info("healthCheck start ", "addr", listenAddr, "inter", checkInterval, "times", unSyncMaxTimes)
 	s.wg.Add(1)
 	go s.healthCheck()
 
@@ -78,7 +77,7 @@ func (s *HealthCheckServer) listen(on bool) error {
 			return err
 		}
 		s.l = listener
-		log.Info("healthCheck listen open")
+		ulog.Info("healthCheck listen open")
 		return nil
 	}
 
@@ -87,7 +86,7 @@ func (s *HealthCheckServer) listen(on bool) error {
 		if err != nil {
 			return err
 		}
-		log.Info("healthCheck listen close")
+		ulog.Info("healthCheck listen close")
 		s.l = nil
 	}
 
@@ -105,7 +104,7 @@ func (s *HealthCheckServer) getHealth(sync bool) (bool, error) {
 		return false, err
 	}
 
-	log.Debug("healthCheck tick", "peers", len(peerList.Peers), "isCaughtUp", reply.IsOk,
+	ulog.Debug("healthCheck tick", "peers", len(peerList.Peers), "isCaughtUp", reply.IsOk,
 		"health", len(peerList.Peers) > 1 && reply.IsOk, "listen", sync)
 
 	return len(peerList.Peers) > 1 && reply.IsOk, nil
@@ -125,7 +124,7 @@ func (s *HealthCheckServer) healthCheck() {
 			if s.l != nil {
 				err := s.l.Close()
 				if err != nil {
-					log.Error("healthCheck ", "close err ", err)
+					ulog.Error("healthCheck ", "close err ", err)
 				}
 			}
 			if s.api != nil {
@@ -142,7 +141,7 @@ func (s *HealthCheckServer) healthCheck() {
 				if !sync {
 					err = s.listen(true)
 					if err != nil {
-						log.Error("healthCheck ", "listen open err", err.Error())
+						ulog.Error("healthCheck ", "listen open err", err.Error())
 						continue
 					}
 					sync = true
@@ -154,7 +153,7 @@ func (s *HealthCheckServer) healthCheck() {
 					if unSyncTimes >= unSyncMaxTimes {
 						err = s.listen(false)
 						if err != nil {
-							log.Error("healthCheck ", "listen close err", err.Error())
+							ulog.Error("healthCheck ", "listen close err", err.Error())
 							continue
 						}
 						sync = false

@@ -12,6 +12,7 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/common/log/log15"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 )
 
 var (
-	ntpLog = chainlog.New("submodule", "ntp")
+	ntpLog = log15.New("submodule", "ntp")
 )
 
 // checkClockDrift queries an NTP server for clock drifts and warns the user if
