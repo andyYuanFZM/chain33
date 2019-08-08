@@ -7,12 +7,12 @@ package log
 
 import (
 	"os"
-	"github.com/33cn/chain33/types"
 
+	"github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/types"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"github.com/33cn/chain33/common/log/log15"
 )
 
 func init() {
@@ -23,21 +23,21 @@ func init() {
 func SetLogLevel(logLevel string) {
 
 	// 日志输出等级
-	lvl, err := log15.LvlFromString(logLevel)
-	if err != nil {
-		// 日志级别配置不正确时默认为error级别
-		lvl = zap.ErrorLevel
-	}
+	//lvl, err := log15.LvlFromString(logLevel)
+	//if err != nil {
+	//	// 日志级别配置不正确时默认为error级别
+	//	lvl = zap.ErrorLevel
+	//}
 
 	// 设置日志级别
-	atomicLevel := zap.NewAtomicLevel()
-	atomicLevel.SetLevel(lvl)
-
-	encoderConfig := log15.SetLc()
-	core := zapcore.NewCore(zapcore.NewJSONEncoder(encoderConfig), zapcore.WriteSyncer(zapcore.AddSync(os.Stdout)),atomicLevel)
-
-	logger := zap.New(core)
-	log15.DefaultLog = logger
+	//atomicLevel := zap.NewAtomicLevel()
+	//atomicLevel.SetLevel(lvl)
+	//
+	//encoderConfig := log15.SetLc()
+	//core := zapcore.NewCore(zapcore.NewJSONEncoder(encoderConfig), zapcore.WriteSyncer(zapcore.AddSync(os.Stdout)), atomicLevel)
+	//
+	//logger := zap.New(core)
+	//log15.DefaultLog = logger
 }
 
 //SetFileLog 设置文件日志和控制台日志信息
@@ -93,5 +93,3 @@ func fillDefaultValue(log *types.Log) {
 		log.LogConsoleLevel = zapcore.ErrorLevel.String()
 	}
 }
-
-

@@ -329,5 +329,5 @@ func TestReportErrEventToFront(t *testing.T) {
 	logger := log.New("test")
 	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
-	ReportErrEventToFront(logger, client, "from", "to", errors.New("test"))
+	ReportErrEventToFront(&logger, client, "from", "to", errors.New("test"))
 }
