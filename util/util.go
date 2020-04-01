@@ -14,6 +14,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"unicode"
+	"time"
 
 	"strings"
 
@@ -236,7 +237,7 @@ func CreateCoinsBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *t
 
 // ExecBlock : just exec block
 func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool) (*types.BlockDetail, []*types.Transaction, error) {
-	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
+	ulog.Crit("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs), "timestamp", time.Now().UnixNano() / 1e6)
 	beg := types.Now()
 	defer func() {
 		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
@@ -248,6 +249,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
 	err = ExecKVSetCommit(client, block.StateHash, false)
+	ulog.Crit("ExecBlock", "height------->", block.Height, "写数据库", "end", "timestamp", time.Now().UnixNano() / 1e6)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -279,6 +281,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	}
 	ulog.Debug("PreExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
 	block.Txs = types.CacheToTxs(cacheTxs)
+	ulog.Crit("ExecBlock", "height------->", block.Height, "交易去重", "end", "timestamp", time.Now().UnixNano() / 1e6)
 	//println("1")
 	receipts, err := ExecTx(client, prevStateRoot, block)
 	if err != nil {
@@ -341,6 +344,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}
+	ulog.Crit("ExecBlock", "height------->", block.Height, "交易执行", "end", "timestamp", time.Now().UnixNano() / 1e6)
 	ulog.Debug("PreExecBlock", "CalcMerkleRootCache", types.Since(beg))
 	beg = types.Now()
 	block.TxHash = calcHash
@@ -373,6 +377,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 		}
 	}
 	ulog.Debug("PreExecBlock", "CheckBlock", types.Since(beg))
+	ulog.Crit("ExecBlock", "height------->", block.Height, "计算默克尔根", "end", "timestamp", time.Now().UnixNano() / 1e6)
 
 	detail.KV = kvset
 	detail.PrevStatusHash = prevStateRoot
